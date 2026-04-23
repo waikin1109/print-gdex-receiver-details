@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GDEX Waybill - Receiver</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; background: #f5f5f5; padding: 20px; }
+
+    .wrap { max-width: 620px; margin: 0 auto; }
+    h1 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #222; }
+
+    .form-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fg { display: flex; flex-direction: column; gap: 5px; }
+    .fg.full { grid-column: 1 / -1; }
+    label { font-size: 12px; color: #666; }
+
+    input, textarea {
+      font-size: 13px;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+    input:focus, textarea:focus { outline: 2px solid #333; border-color: #333; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+    button {
+      padding: 8px 20px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #fff;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button:hover { background: #f0f0f0; }
+    button.pri { background: #111; color: #fff; border-color: #111; }
+    button.pri:hover { background: #333; }
+
+    .preview-area { display: none; }
+    .preview-area.visible { display: block; }
+    .preview-label { font-size: 12px; color: #888; margin-bottom: 8px; }
+
+    .preview-box {
+      background: #fff;
+      border: 1px dashed #aaa;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .preview-note {
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      padding: 5px;
+      background: #f9f9f9;
+      border-bottom: 1px dashed #ddd;
+    }
+
+    .rec-content { padding: 14px 16px; min-height: 110px; }
+    .rec-company { font-size: 9px; font-weight: 700; line-height: 1.6; margin-bottom: 4px; white-space: pre-line; text-transform: uppercase; }
+    .rec-attn { font-size: 9px; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; }
+    .rec-bottom { display: flex; align-items: baseline; margin-top: 2px; }
+    .rec-tel { flex: 1; font-size: 9px; font-weight: 700; }
+    .rec-post { font-size: 8px; font-weight: 700; }
+
+    .tip { font-size: 11px; color: #888; margin-top: 8px; }
+
+    /* ========== PRINT STYLES ========== */
+    @media print {
+      @page { size: A4; margin: 0; }
+
+      body { background: transparent; padding: 0; }
+      .form-card, .btn-row, .preview-note, h1, .tip, .preview-label { display: none !important; }
+      .preview-area { display: block !important; }
+      .preview-box { border: none !important; }
+
+      /* Main block — moved DOWN to match sender height, same top as sender text */
+      .rec-content {
+        position: absolute;
+        top: 33mm;       /* matches sender text starting height */
+        left: 112mm;     /* receiver column left edge */
+        width: 78mm;     /* receiver column width */
+        padding-top: 20px;
+        background: transparent;
+      }
+
+      .rec-company {
+        font-size: 8.5pt;
+        font-weight: 700;
+        line-height: 1.6;
+        margin-bottom: 3px;
+        white-space: pre-line;
+        text-transform: uppercase;
+      }
+      .rec-attn {
+        font-size: 8.5pt;
+        font-weight: 700;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+      }
+      .rec-bottom {
+        display: flex;
+        align-items: baseline;
+        margin-top: 1px;
+      }
+      .rec-tel {
+        flex: 1;
+        font-size: 8.5pt;
+        font-weight: 700;
+      }
+
+      /* Postcode — pinned to the POST CODE box position on waybill */
+      .rec-post {
+        position: absolute;
+        left: 68mm;
+        font-size: 8.5pt;
+        font-weight: 700;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>GDEX Waybill — Receiver</h1>
+
+  <div class="form-card">
+    <div class="form-grid">
+      <div class="fg full">
+        <label>Company name &amp; address</label>
+        <textarea id="rcompany" placeholder="ABC Trading Sdn Bhd&#10;No. 12, Jalan Bahagia&#10;Taman Damai, 56000 Kuala Lumpur"></textarea>
+      </div>
+      <div class="fg full">
+        <label>Customer name (ATTN)</label>
+        <input type="text" id="rattn" placeholder="Mr Lim" />
+      </div>
+      <div class="fg">
+        <label>Telephone</label>
+        <input type="text" id="rtel" placeholder="012-956 3929" />
+      </div>
+      <div class="fg">
+        <label>Post code</label>
+        <input type="text" id="rpost" placeholder="56000" maxlength="5" />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="pri" onclick="gen()">Preview</button>
+      <button onclick="clr()">Clear</button>
+    </div>
+  </div>
+
+  <div class="preview-area" id="preview-area">
+    <p class="preview-label">Preview — receiver section:</p>
+    <div class="preview-box">
+      <div class="preview-note">Receiver column preview</div>
+      <div class="rec-content" id="rec-content">
+        <div class="rec-company" id="out-company"></div>
+        <div class="rec-attn" id="out-attn"></div>
+        <div class="rec-bottom">
+          <div class="rec-tel" id="out-tel"></div>
+          <div class="rec-post" id="out-post"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top: 14px;">
+      <button class="pri" onclick="window.print()">Print onto waybill</button>
+      <button onclick="hide()">Edit</button>
+    </div>
+    <p class="tip">Tip: Tell me if anything is still off — up/down/left/right — and I will adjust.</p>
+  </div>
+</div>
+
+<script>
+  function gen() {
+    const company = document.getElementById('rcompany').value.trim();
+    const attn    = document.getElementById('rattn').value.trim();
+    const tel     = document.getElementById('rtel').value.trim();
+    const post    = document.getElementById('rpost').value.trim();
+
+    if (!company && !attn && !tel) {
+      alert('Please fill in at least one field.');
+      return;
+    }
+
+    document.getElementById('out-company').textContent = company;
+    document.getElementById('out-attn').textContent    = attn;
+    document.getElementById('out-tel').textContent     = tel;
+    document.getElementById('out-post').textContent    = post;
+
+    document.getElementById('preview-area').classList.add('visible');
+    document.getElementById('preview-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function clr() {
+    ['rcompany','rattn','rtel','rpost'].forEach(id => document.getElementById(id).value = '');
+    hide();
+  }
+
+  function hide() {
+    document.getElementById('preview-area').classList.remove('visible');
+  }
+</script>
+
+</body>
+</html>
